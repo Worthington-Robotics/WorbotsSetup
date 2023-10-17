@@ -7,7 +7,6 @@ use std::{
 };
 
 use anyhow::Context;
-use color_print::cprintln;
 use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -97,7 +96,7 @@ impl GithubRelease {
 
 /// Print a progress message
 pub fn print_progress(message: &str) {
-	cprintln!("<s>{message}...");
+	println!("{message}...");
 }
 
 /// Creates a command with elevated permissions (which some installers require).

@@ -23,13 +23,31 @@ async fn run_cli() -> anyhow::Result<()> {
 	let mut data = Data::new().context("Failed to create application data")?;
 	match cli.command {
 		Subcommand::Install { packages } => {
-			for package in packages {
-				package.install(&mut data).await?;
-			}
-			cprintln!("All packages installed")
+			install_packages(packages, &mut data).await?;
+		}
+		Subcommand::InstallAll => {
+			install_packages(
+				vec![
+					Package::Phoenix,
+					Package::REVClient,
+					Package::AdvantageScope,
+					Package::GRIP,
+					Package::LimelightFinder,
+				],
+				&mut data,
+			)
+			.await?;
 		}
 	}
 
+	Ok(())
+}
+
+async fn install_packages(packages: Vec<Package>, data: &mut Data) -> anyhow::Result<()> {
+	for package in packages {
+		package.install(data).await?;
+	}
+	cprintln!("<s,g>All packages installed");
 	Ok(())
 }
 
@@ -46,4 +64,6 @@ enum Subcommand {
 		/// The names of the packages to install
 		packages: Vec<Package>,
 	},
+	/// Installs all available packages
+	InstallAll,
 }
