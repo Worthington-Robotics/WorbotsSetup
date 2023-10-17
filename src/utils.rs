@@ -1,4 +1,10 @@
-use std::path::Path;
+use std::{
+	ffi::OsStr,
+	io::{stdin, stdout, Read, Write},
+	os::windows::process::CommandExt,
+	path::Path,
+	process::Command,
+};
 
 use anyhow::Context;
 use color_print::cprintln;
@@ -55,9 +61,21 @@ pub async fn download_github_release(
 	Ok(out)
 }
 
-/// Structure for a Github release
+/// Get the list of releases for a Github project
+pub async fn get_github_releases(
+	client: &Client,
+	user: &str,
+	repo: &str,
+) -> anyhow::Result<Vec<GithubRelease>> {
+	let url = format!("https://api.github.com/repos/{user}/{repo}/releases");
+	let out = download_json(client, url).await?;
+	Ok(out)
+}
+
+/// A single Github release
 #[derive(Deserialize)]
 pub struct GithubRelease {
+	pub tag_name: String,
 	pub assets: Vec<GithubReleaseAsset>,
 }
 
@@ -80,4 +98,23 @@ impl GithubRelease {
 /// Print a progress message
 pub fn print_progress(message: &str) {
 	cprintln!("<s>{message}...");
+}
+
+/// Creates a command with elevated permissions (which some installers require).
+/// See https://stackoverflow.com/a/60958546
+pub fn run_elevated(cmd: impl AsRef<OsStr>) -> Command {
+	let mut out = Command::new("cmd");
+	out.args(&["/C", "start"]);
+	out.arg(cmd);
+	out.creation_flags(0x00000008);
+
+	out
+}
+
+/// Prompt the user to press any key to continue
+pub fn continue_prompt() {
+	let mut stdout = stdout();
+	let _ = stdout.write(b"Press Enter to continue...");
+	let _ = stdout.flush();
+	let _ = stdin().read(&mut [0]);
 }

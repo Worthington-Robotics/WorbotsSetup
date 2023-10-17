@@ -11,6 +11,8 @@ use crate::{data::Data, install, utils::print_progress};
 pub enum Package {
 	#[serde(rename = "advantagescope")]
 	AdvantageScope,
+	#[serde(rename = "rev_client")]
+	REVClient,
 }
 
 impl Display for Package {
@@ -20,6 +22,7 @@ impl Display for Package {
 			"{}",
 			match self {
 				Self::AdvantageScope => "advantagescope",
+				Self::REVClient => "rev_client",
 			}
 		)
 	}
@@ -31,6 +34,7 @@ impl FromStr for Package {
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		match s {
 			"advantagescope" => Ok(Self::AdvantageScope),
+			"rev_client" => Ok(Self::REVClient),
 			_ => Err(anyhow!("Unknown package type")),
 		}
 	}
@@ -42,6 +46,7 @@ impl Package {
 		print_progress(&format!("Installing package {self}"));
 		match self {
 			Self::AdvantageScope => install::advantagescope::install(data).await?,
+			Self::REVClient => install::rev_client::install(data).await?,
 		}
 
 		cprintln!("<g>Package installed");

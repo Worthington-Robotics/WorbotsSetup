@@ -53,8 +53,7 @@ fn configure() -> anyhow::Result<()> {
 		"rioPath": "/media/sda1/",
 		"liveMode": "nt4",
 		"liveSubscribeMode": "low-bandwidth",
-		"rlogPort": 5800,
-		"threeDimensionMode": "quality"
+		"rlogPort": 5800
 	}"#;
 	std::fs::write(as_dir.join("prefs.json"), prefs)
 		.context("Failed to write AdvantageScope preferences")?;
