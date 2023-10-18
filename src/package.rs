@@ -1,12 +1,20 @@
 use std::{fmt::Display, str::FromStr};
 
 use anyhow::anyhow;
-use color_print::{cformat, cprintln};
 use serde::{Deserialize, Serialize};
 
-use crate::{data::Data, install, utils::print_progress};
+use crate::{data::Data, install, output::OutputTrait};
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+/// List of all packages
+pub static ALL_PACKAGES: &[Package] = &[
+	Package::AdvantageScope,
+	Package::REVClient,
+	Package::LimelightFinder,
+	Package::GRIP,
+	Package::Phoenix,
+];
+
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Package {
 	#[serde(rename = "advantagescope")]
@@ -50,10 +58,35 @@ impl FromStr for Package {
 	}
 }
 
+// Display impls
+impl Package {
+	/// Get the pretty display name of the package
+	pub fn display_name(&self) -> &'static str {
+		match self {
+			Self::AdvantageScope => "AdvantageScope",
+			Self::REVClient => "REV Hardware Client",
+			Self::LimelightFinder => "Limelight Finder",
+			Self::GRIP => "GRIP",
+			Self::Phoenix => "CTRE Phoenix",
+		}
+	}
+
+	/// Get the short description of the package
+	pub fn short_description(&self) -> &'static str {
+		match self {
+			Self::AdvantageScope => "A viewer for live robot telemetry and log files",
+			Self::REVClient => "Updater and debugger for REV devices",
+			Self::LimelightFinder => "Tool to find Limelights on the robot network",
+			Self::GRIP => "A graphical vision pipeline editor",
+			Self::Phoenix => "Tools for working with CTRE devices",
+		}
+	}
+}
+
 impl Package {
 	/// Install the package
-	pub async fn install(&self, data: &mut Data) -> anyhow::Result<()> {
-		print_progress(&cformat!("<s>Installing package {self}"));
+	pub async fn install(&self, data: &mut Data<'_>) -> anyhow::Result<()> {
+		data.out.progress(format!("Installing package {self}"));
 		match self {
 			Self::AdvantageScope => install::advantagescope::install(data).await?,
 			Self::REVClient => install::rev_client::install(data).await?,
@@ -62,7 +95,7 @@ impl Package {
 			Self::Phoenix => install::phoenix::install(data).await?,
 		}
 
-		cprintln!("<s,g>Package installed");
+		data.out.success("Package installed");
 
 		Ok(())
 	}

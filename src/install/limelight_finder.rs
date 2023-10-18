@@ -2,12 +2,13 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use crate::data::Data;
-use crate::utils::{download_file, print_progress};
+use crate::output::OutputTrait;
+use crate::utils::download_file;
 
-pub async fn install(data: &mut Data) -> anyhow::Result<()> {
+pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	let dir = get_path(data)?;
 	// Download the program
-	print_progress("Downloading installer");
+	data.out.progress("Downloading installer");
 	let installer_path = dir.join("installer.exe");
 	download_file(
 		&data.client,
@@ -17,7 +18,7 @@ pub async fn install(data: &mut Data) -> anyhow::Result<()> {
 	.await?;
 
 	// Run the installer
-	print_progress("Starting installer");
+	data.out.progress("Starting installer");
 	Command::new(installer_path).spawn()?.wait()?;
 
 	Ok(())

@@ -1,9 +1,11 @@
 use std::{
 	ffi::OsStr,
+	future::Future,
 	io::{stdin, stdout, Read, Write},
 	os::windows::process::CommandExt,
 	path::Path,
 	process::Command,
+	thread::JoinHandle,
 };
 
 use anyhow::Context;
@@ -95,8 +97,8 @@ impl GithubRelease {
 }
 
 /// Print a progress message
-pub fn print_progress(message: &str) {
-	println!("{message}...");
+pub fn print_progress(message: impl AsRef<str>) {
+	println!("{}...", message.as_ref());
 }
 
 /// Creates a command with elevated permissions (which some installers require).
@@ -116,4 +118,21 @@ pub fn continue_prompt() {
 	let _ = stdout.write(b"Press Enter to continue...");
 	let _ = stdout.flush();
 	let _ = stdin().read(&mut [0]);
+}
+
+/// Executes a function with a brand new tokio runtime
+pub fn tokio_exec<F: Future>(f: F) -> anyhow::Result<F::Output> {
+	let rt = tokio::runtime::Runtime::new().context("Failed to start runtime")?;
+	Ok(rt.block_on(f))
+}
+
+/// Executes a function with a brand new tokio runtime on a new thread
+pub fn tokio_exec_deferred<F>(f: F) -> anyhow::Result<JoinHandle<anyhow::Result<F::Output>>>
+where
+	F: Future + Send + 'static,
+	F::Output: Send + 'static,
+{
+	let h = std::thread::spawn(|| tokio_exec(f));
+
+	Ok(h)
 }

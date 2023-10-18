@@ -2,15 +2,15 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
-use color_print::cprintln;
 
 use crate::data::Data;
-use crate::utils::{download_file, download_github_release, print_progress};
+use crate::output::OutputTrait;
+use crate::utils::{download_file, download_github_release};
 
-pub async fn install(data: &mut Data) -> anyhow::Result<()> {
+pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	let dir = get_path(data)?;
 
-	print_progress("Getting Github release");
+	data.out.progress("Getting Github release");
 	let release = download_github_release(&data.client, "CrossTheRoadElec", "Phoenix-Releases")
 		.await
 		.context("Failed to get Github release")?;
@@ -19,13 +19,13 @@ pub async fn install(data: &mut Data) -> anyhow::Result<()> {
 		.ok_or(anyhow!("No valid asset file found"))?;
 
 	// Download the installer
-	print_progress("Downloading installer");
+	data.out.progress("Downloading installer");
 	let installer_path = dir.join("installer.exe");
 	download_file(&data.client, &asset.browser_download_url, &installer_path).await?;
 
 	// Run the installer
-	print_progress("Starting installer");
-	cprintln!("<s>Instructions: click next/I agree on every option");
+	data.out.progress("Starting installer");
+	data.out.instruction("Click next/I agree on every option");
 	Command::new(installer_path).spawn()?.wait()?;
 
 	Ok(())

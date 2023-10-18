@@ -5,22 +5,24 @@ use directories::ProjectDirs;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::package::Package;
+use crate::{output::Output, package::Package};
 
 /// Container for project directories, data, and other shared state
-pub struct Data {
+pub struct Data<'o> {
 	pub dirs: ProjectDirs,
 	pub client: Client,
+	pub out: &'o mut Output,
 }
 
-impl Data {
-	pub fn new() -> anyhow::Result<Self> {
+impl<'o> Data<'o> {
+	pub fn new(out: &'o mut Output) -> anyhow::Result<Self> {
 		let dirs = directories::ProjectDirs::from("worbots_setup", "4145", "worbots_setup")
 			.ok_or(anyhow!("Failed to create project directories"))?;
 
 		let out = Data {
 			dirs,
 			client: Client::new(),
+			out,
 		};
 
 		Ok(out)

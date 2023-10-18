@@ -1,17 +1,15 @@
 use std::path::PathBuf;
 
 use crate::data::Data;
-use crate::utils::{
-	continue_prompt, download_file, get_github_releases, print_progress, run_elevated,
-};
+use crate::output::OutputTrait;
+use crate::utils::{download_file, get_github_releases, run_elevated};
 
 use anyhow::anyhow;
-use color_print::cprintln;
 
-pub async fn install(data: &mut Data) -> anyhow::Result<()> {
+pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	let dir = get_path(data)?;
 
-	print_progress("Getting Github release");
+	data.out.progress("Getting Github release");
 	let releases =
 		get_github_releases(&data.client, "REVrobotics", "REV-Software-Binaries").await?;
 	let asset = releases
@@ -27,15 +25,16 @@ pub async fn install(data: &mut Data) -> anyhow::Result<()> {
 		.ok_or(anyhow!("No valid release found"))?;
 
 	// Download the installer
-	print_progress("Downloading installer");
+	data.out.progress("Downloading installer");
 	let installer_path = dir.join("installer.exe");
 	download_file(&data.client, &asset.browser_download_url, &installer_path).await?;
 
 	// Run the installer
-	print_progress("Starting installer");
+	data.out.progress("Starting installer");
 	run_elevated(installer_path).spawn()?.wait()?;
-	cprintln!("<y>The installer has started. Follow the steps it gives you");
-	continue_prompt();
+	data.out
+		.instruction("The installer has started. Follow the steps it gives you");
+	data.out.continue_prompt();
 
 	Ok(())
 }
