@@ -1978,6 +1978,7 @@ name = "worbots_setup"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "clap",
  "color-print",
  "directories",

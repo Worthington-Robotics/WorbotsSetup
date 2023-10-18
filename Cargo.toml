@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+bytes = "1.5.0"
 clap = { version = "4.4.6", features = ["derive"] }
 color-print = "0.3.5"
 directories = "5.0.1"

@@ -2,12 +2,11 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
-use directories::ProjectDirs;
 
 use crate::assets;
 use crate::data::Data;
 use crate::output::OutputTrait;
-use crate::utils::{download_file, download_github_release};
+use crate::utils::{download_file, download_github_release, get_data_dir, get_local_program};
 
 pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	let dir = get_path(data)?;
@@ -36,14 +35,17 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	Ok(())
 }
 
+pub fn launch(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	let exec = get_local_program("advantagescope", "AdvantageScope.exe")?;
+	Command::new(exec).spawn()?;
+
+	Ok(())
+}
+
 fn configure() -> anyhow::Result<()> {
-	let as_dir = ProjectDirs::from("", "", "AdvantageScope")
-		.ok_or(anyhow!("Failed to get AdvantageScope directories"))?
-		.data_dir()
-		.parent()
-		.ok_or(anyhow!("Failed to get AdvantageScope dir"))?
-		.to_owned();
-	std::fs::create_dir_all(&as_dir)?;
+	let as_dir =
+		get_data_dir("AdvantageScope").context("Failed to get AdvantageScope directory")?;
+
 	let frc_data_dir = as_dir.join("frcData");
 	std::fs::create_dir_all(&frc_data_dir)?;
 

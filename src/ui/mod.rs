@@ -20,7 +20,7 @@ pub fn start_app() -> anyhow::Result<()> {
 #[derive(Default, NwgUi)]
 pub struct App {
 	// App structure
-	#[nwg_control(title: "Worbots Setup")]
+	#[nwg_control(title: "Worbots Setup", icon: Some(&data.icon))]
 	#[nwg_events(
 		OnWindowClose: [App::exit],
 		OnInit: [App::init],

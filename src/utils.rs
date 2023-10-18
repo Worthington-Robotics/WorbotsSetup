@@ -3,12 +3,13 @@ use std::{
 	future::Future,
 	io::{stdin, stdout, Read, Write},
 	os::windows::process::CommandExt,
-	path::Path,
+	path::{Path, PathBuf},
 	process::Command,
 	thread::JoinHandle,
 };
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
+use directories::ProjectDirs;
 use reqwest::Client;
 use serde::{de::DeserializeOwned, Deserialize};
 
@@ -27,13 +28,24 @@ pub async fn download(
 	Ok(out)
 }
 
+/// Download bytes
+pub async fn download_bytes(
+	client: &Client,
+	url: impl reqwest::IntoUrl,
+) -> anyhow::Result<bytes::Bytes> {
+	let bytes = download(client, url).await?.bytes().await?;
+	Ok(bytes)
+}
+
 /// Download a file to a path
 pub async fn download_file(
 	client: &Client,
 	url: impl reqwest::IntoUrl,
 	path: &Path,
 ) -> anyhow::Result<()> {
-	let bytes = download(client, url).await?.bytes().await?;
+	let bytes = download_bytes(client, url)
+		.await
+		.context("Failed to download file bytes")?;
 	std::fs::write(path, bytes).context("Failed to write to file")?;
 	Ok(())
 }
@@ -92,7 +104,14 @@ pub struct GithubReleaseAsset {
 impl GithubRelease {
 	/// Get the first asset who's name matches a pattern
 	pub fn get_asset_pattern(&self, pat: &str) -> Option<&GithubReleaseAsset> {
-		self.assets.iter().find(|x| x.name.contains(pat))
+		self.get_asset_patterns(&[pat])
+	}
+
+	/// Get the first asset who's name matches multiple patterns
+	pub fn get_asset_patterns(&self, pats: &[&str]) -> Option<&GithubReleaseAsset> {
+		self.assets
+			.iter()
+			.find(|x| pats.iter().all(|p| x.name.contains(p)))
 	}
 }
 
@@ -135,4 +154,44 @@ where
 	let h = std::thread::spawn(|| tokio_exec(f));
 
 	Ok(h)
+}
+
+/// Gets a data directory and ensures it exists using ProjectDirs
+pub fn get_data_dir(project: &str) -> anyhow::Result<PathBuf> {
+	let out = get_simple_project_dirs(project)?
+		.data_dir()
+		.parent()
+		.ok_or(anyhow!("Failed to get parent data directory"))?
+		.to_owned();
+
+	std::fs::create_dir_all(&out).context("Failed to ensure data directory exists")?;
+
+	Ok(out)
+}
+
+/// Gets a local data directory and ensures it exists using ProjectDirs
+pub fn get_local_data_dir(project: &str) -> anyhow::Result<PathBuf> {
+	let out = get_simple_project_dirs(project)?
+		.data_local_dir()
+		.parent()
+		.ok_or(anyhow!("Failed to get parent local data directory"))?
+		.to_owned();
+
+	std::fs::create_dir_all(&out).context("Failed to ensure local data directory exists")?;
+
+	Ok(out)
+}
+
+/// Gets a local program file and ensures the directories leading up to it exist
+pub fn get_local_program(project: &str, exec_name: &str) -> anyhow::Result<PathBuf> {
+	let programs_dir =
+		get_local_data_dir("Programs").context("Failed to get programs directory")?;
+	let dir = programs_dir.join(project);
+	std::fs::create_dir_all(&dir)?;
+	Ok(dir.join(exec_name))
+}
+
+fn get_simple_project_dirs(project: &str) -> anyhow::Result<ProjectDirs> {
+	let out = ProjectDirs::from("", "", project).ok_or(anyhow!("Failed to get directories"))?;
+	Ok(out)
 }

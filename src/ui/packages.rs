@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use native_windows_derive::NwgPartial;
 use native_windows_gui as nwg;
 
+use crate::utils::tokio_exec;
 use crate::{data::Data, utils::tokio_exec_deferred, output::CommonOutput};
 use crate::package::{ALL_PACKAGES, Package};
 
@@ -116,9 +117,14 @@ struct PackageDetailsPane {
 	desc_label: nwg::Label,
 
 	#[nwg_control(text: "Install/Update", size: (100, 50))]
-	#[nwg_layout_item(layout: layout, col: 0, row: 5, row_span: 5)]
+	#[nwg_layout_item(layout: layout, col: 0, row: 5, row_span: 3)]
 	#[nwg_events(OnButtonClick: [PackageDetailsPane::install_package])]
 	install_button: nwg::Button,
+
+	#[nwg_control(text: "Launch", size: (100, 50))]
+	#[nwg_layout_item(layout: layout, col: 0, row: 9, row_span: 3)]
+	#[nwg_events(OnButtonClick: [PackageDetailsPane::launch_package])]
+	launch_button: nwg::Button,
 }
 
 impl PackageDetailsPane {
@@ -128,6 +134,7 @@ impl PackageDetailsPane {
 			self.name_label.set_text(package.display_name());
 			let desc_wrapped = textwrap::wrap(package.short_description(), 30).join("\r\n");
 			self.desc_label.set_text(&desc_wrapped);
+			self.launch_button.set_visible(package.can_launch());
 		}
 	}
 
@@ -145,6 +152,23 @@ impl PackageDetailsPane {
 
 			self.install_button.set_text("Install/Update");
 			self.install_button.set_enabled(true);
+		}
+	}
+
+	fn launch_package(&self) {
+		if let Some(pkg) = *self.selected_pkg.borrow() {
+			self.launch_button.set_enabled(false);
+			self.launch_button.set_text("Launching...");
+			println!("Launching package {pkg}");
+
+			tokio_exec(async {
+				let mut out = CommonOutput;
+				let mut data = Data::new(&mut out).expect("Failed to create application data");
+				pkg.launch(&mut data).await.expect("Failed to install package");
+			}).expect("Failed to execute task");
+
+			self.launch_button.set_text("Launch");
+			self.launch_button.set_enabled(true);
 		}
 	}
 }

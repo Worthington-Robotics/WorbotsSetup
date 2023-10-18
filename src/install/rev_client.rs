@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::process::Command;
 
 use crate::data::Data;
 use crate::output::OutputTrait;
@@ -35,6 +36,15 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	data.out
 		.instruction("The installer has started. Follow the steps it gives you");
 	data.out.continue_prompt();
+
+	Ok(())
+}
+
+pub fn launch(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	let exec = PathBuf::from(
+		"C:/Program Files (x86)/REV Robotics/REV Hardware Client/REV Hardware Client.exe",
+	);
+	Command::new(exec).spawn()?;
 
 	Ok(())
 }
