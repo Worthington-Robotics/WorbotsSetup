@@ -1,4 +1,7 @@
-use std::{fmt::Display, str::FromStr};
+use std::{
+	fmt::{Debug, Display},
+	str::FromStr,
+};
 
 use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
@@ -70,6 +73,12 @@ impl Display for Package {
 	}
 }
 
+impl Debug for Package {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		<Self as Display>::fmt(&self, f)
+	}
+}
+
 impl FromStr for Package {
 	type Err = anyhow::Error;
 
@@ -88,7 +97,9 @@ impl FromStr for Package {
 			"vscode" => Ok(Self::VSCode),
 			"data_log_tool" => Ok(Self::DataLogTool),
 			"team_number_setter" => Ok(Self::TeamNumberSetter),
-			_ => Err(anyhow!("Unknown package type")),
+			other => Err(anyhow!(
+				"Unknown package type {other}. Must be one of {ALL_PACKAGES:?}"
+			)),
 		}
 	}
 }

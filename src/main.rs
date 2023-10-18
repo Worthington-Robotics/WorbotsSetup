@@ -5,7 +5,7 @@ use clap::Parser;
 use color_print::{cformat, cprintln};
 use data::Data;
 use output::CommonOutput;
-use package::Package;
+use package::{Package, ALL_PACKAGES};
 use ui::start_app;
 
 use crate::utils::tokio_exec;
@@ -37,16 +37,32 @@ fn run_cli() -> anyhow::Result<()> {
 			println!("Starting app");
 			start_app().context("Failed to start app")?;
 		}
+		Subcommand::List => {
+			cprintln!("<s>Available packages:");
+			for pkg in ALL_PACKAGES {
+				cprintln!(
+					" - <s><b>{}</b> ({})</>: {}",
+					pkg.display_name(),
+					pkg,
+					pkg.short_description()
+				);
+			}
+		}
 		Subcommand::Install { packages } => {
 			install_packages(packages, &mut data)?;
 		}
 		Subcommand::InstallAll => {
+			// Ordered so that more important packages are installed first
 			install_packages(
 				vec![
+					Package::WPILib,
 					Package::Phoenix,
+					Package::GithubDesktop,
 					Package::REVClient,
 					Package::AdvantageScope,
+					Package::Etcher,
 					Package::GRIP,
+					Package::PathPlanner,
 					Package::LimelightFinder,
 				],
 				&mut data,
@@ -112,6 +128,8 @@ struct Cli {
 enum Subcommand {
 	/// Opens the graphical application
 	App,
+	/// Lists available packages
+	List,
 	/// Installs a package
 	Install {
 		/// The names of the packages to install
