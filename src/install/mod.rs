@@ -6,3 +6,4 @@ pub mod limelight_finder;
 pub mod pathplanner;
 pub mod phoenix;
 pub mod rev_client;
+pub mod wpilib;

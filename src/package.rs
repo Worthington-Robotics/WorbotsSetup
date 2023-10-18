@@ -14,7 +14,12 @@ pub static ALL_PACKAGES: &[Package] = &[
 	Package::GRIP,
 	Package::LimelightFinder,
 	Package::PathPlanner,
+	Package::PhoenixTuner,
 	Package::REVClient,
+	Package::TeamNumberSetter,
+	Package::WPILib,
+	Package::VSCode,
+	Package::DataLogTool,
 ];
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +37,13 @@ pub enum Package {
 	PathPlanner,
 	GithubDesktop,
 	Etcher,
+	PhoenixTuner,
+	#[serde(rename = "wpilib")]
+	WPILib,
+	#[serde(rename = "vscode")]
+	VSCode,
+	DataLogTool,
+	TeamNumberSetter,
 }
 
 impl Display for Package {
@@ -48,6 +60,11 @@ impl Display for Package {
 				Self::PathPlanner => "pathplanner",
 				Self::GithubDesktop => "github_desktop",
 				Self::Etcher => "etcher",
+				Self::PhoenixTuner => "phoenix_tuner",
+				Self::WPILib => "wpilib",
+				Self::VSCode => "vscode",
+				Self::DataLogTool => "data_log_tool",
+				Self::TeamNumberSetter => "team_number_setter",
 			}
 		)
 	}
@@ -66,6 +83,11 @@ impl FromStr for Package {
 			"path_planner" => Ok(Self::PathPlanner),
 			"github_desktop" => Ok(Self::GithubDesktop),
 			"etcher" => Ok(Self::Etcher),
+			"phoenix_tuner" => Ok(Self::Etcher),
+			"wpilib" => Ok(Self::WPILib),
+			"vscode" => Ok(Self::VSCode),
+			"data_log_tool" => Ok(Self::DataLogTool),
+			"team_number_setter" => Ok(Self::TeamNumberSetter),
 			_ => Err(anyhow!("Unknown package type")),
 		}
 	}
@@ -84,6 +106,11 @@ impl Package {
 			Self::PathPlanner => "PathPlanner",
 			Self::GithubDesktop => "GitHub Desktop",
 			Self::Etcher => "Etcher",
+			Self::PhoenixTuner => "Phoenix Tuner",
+			Self::WPILib => "WPILib",
+			Self::VSCode => "WPILib VSCode",
+			Self::DataLogTool => "WPILib Data Log Tool",
+			Self::TeamNumberSetter => "roboRIO Team Number Setter",
 		}
 	}
 
@@ -97,12 +124,36 @@ impl Package {
 			Self::Phoenix => "Tools for working with CTRE devices",
 			Self::PathPlanner => "Autonomous path editor and generator",
 			Self::GithubDesktop => "Desktop app for GitHub, a website used to host robot code",
-			Self::Etcher => "Flashes OS images to drives. Used to flash the RoboRIO 2",
+			Self::Etcher => "Flashes OS images to drives. Used to flash the roboRIO 2",
+			Self::PhoenixTuner => {
+				"Allows viewing, debugging, and configuration of devices on a CAN network"
+			}
+			Self::WPILib => "The official tools for developing FRC robots",
+			Self::VSCode => "Microsoft's code editor configured for robot development",
+			Self::DataLogTool => "Viewer for robot log files",
+			Self::TeamNumberSetter => "Simple tool used to set the team number on a roboRIO",
 		}
 	}
 }
 
 impl Package {
+	/// Gets the parent package of this package, if it has one
+	pub fn get_parent(&self) -> Option<Package> {
+		match self {
+			Self::PhoenixTuner => Some(Self::Phoenix),
+			Self::VSCode | Self::DataLogTool | Self::TeamNumberSetter => Some(Self::WPILib),
+			_ => None,
+		}
+	}
+
+	/// Check if the package can be installed
+	pub fn can_install(&self) -> bool {
+		!matches!(
+			self,
+			Self::PhoenixTuner | Self::VSCode | Self::DataLogTool | Self::TeamNumberSetter
+		)
+	}
+
 	/// Install the package
 	pub async fn install(&self, data: &mut Data<'_>) -> anyhow::Result<()> {
 		data.out.progress(format!("Installing package {self}"));
@@ -115,6 +166,11 @@ impl Package {
 			Self::PathPlanner => install::pathplanner::install(data).await?,
 			Self::GithubDesktop => install::github_desktop::install(data).await?,
 			Self::Etcher => install::etcher::install(data).await?,
+			Self::PhoenixTuner => {}
+			Self::WPILib => install::wpilib::install(data).await?,
+			Self::VSCode => {}
+			Self::DataLogTool => {}
+			Self::TeamNumberSetter => {}
 		}
 
 		data.out.success("Package installed");
@@ -124,7 +180,7 @@ impl Package {
 
 	/// Check if the package can be launched
 	pub fn can_launch(&self) -> bool {
-		!matches!(self, Self::Phoenix)
+		!matches!(self, Self::Phoenix | Self::WPILib)
 	}
 
 	/// Launch the package if it can be launched
@@ -139,6 +195,11 @@ impl Package {
 			Self::PathPlanner => install::pathplanner::launch(data)?,
 			Self::GithubDesktop => install::github_desktop::launch(data)?,
 			Self::Etcher => install::etcher::launch(data)?,
+			Self::PhoenixTuner => install::phoenix::launch_phoenix_tuner(data)?,
+			Self::WPILib => {}
+			Self::VSCode => install::wpilib::launch_vscode(data)?,
+			Self::DataLogTool => install::wpilib::launch_data_log_tool(data)?,
+			Self::TeamNumberSetter => install::wpilib::launch_team_number_setter(data)?,
 		}
 
 		data.out.success("Package launched");

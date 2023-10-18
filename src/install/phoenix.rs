@@ -31,6 +31,14 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	Ok(())
 }
 
+pub fn launch_phoenix_tuner(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	let exec = PathBuf::from(
+		"C:/Users/Public/Documents/Cross The Road Electronics/Phoenix-Tuner/CTRE_Phoenix_Tuner.exe",
+	);
+	Command::new(exec).spawn()?;
+	Ok(())
+}
+
 fn get_path(data: &Data) -> anyhow::Result<PathBuf> {
 	let out = data.get_data_directory()?.join("phoenix");
 	std::fs::create_dir_all(&out)?;

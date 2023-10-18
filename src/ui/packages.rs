@@ -121,6 +121,10 @@ struct PackageDetailsPane {
 	#[nwg_events(OnButtonClick: [PackageDetailsPane::install_package])]
 	install_button: nwg::Button,
 
+	#[nwg_control(text: "Installed from")]
+	#[nwg_layout_item(layout: layout, col: 0, row: 5, row_span: 3)]
+	parent_label: nwg::Label,
+
 	#[nwg_control(text: "Launch", size: (100, 50))]
 	#[nwg_layout_item(layout: layout, col: 0, row: 9, row_span: 3)]
 	#[nwg_events(OnButtonClick: [PackageDetailsPane::launch_package])]
@@ -134,6 +138,16 @@ impl PackageDetailsPane {
 			self.name_label.set_text(package.display_name());
 			let desc_wrapped = textwrap::wrap(package.short_description(), 30).join("\r\n");
 			self.desc_label.set_text(&desc_wrapped);
+
+			self.install_button.set_visible(package.can_install());
+			if let Some(parent) = package.get_parent() {
+				let parent_text = format!("Installed from package '{}'", parent.display_name());
+				let parent_text = textwrap::wrap(&parent_text, 30).join("\r\n");
+				self.parent_label.set_text(&parent_text);
+				self.parent_label.set_visible(true);
+			} else {
+				self.parent_label.set_visible(false);
+			}
 			self.launch_button.set_visible(package.can_launch());
 		}
 	}

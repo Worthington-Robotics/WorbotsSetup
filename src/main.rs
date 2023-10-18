@@ -52,6 +52,9 @@ fn run_cli() -> anyhow::Result<()> {
 				&mut data,
 			)?;
 		}
+		Subcommand::Launch { packages } => {
+			launch_packages(packages, &mut data)?;
+		}
 	}
 
 	Ok(())
@@ -60,11 +63,42 @@ fn run_cli() -> anyhow::Result<()> {
 fn install_packages(packages: Vec<Package>, data: &mut Data) -> anyhow::Result<()> {
 	tokio_exec(async {
 		for package in packages {
-			package.install(data).await?;
+			if package.can_install() {
+				package.install(data).await?;
+			} else {
+				if let Some(parent) = package.get_parent() {
+					cprintln!(
+						"<r>This package cannot be installed as it is part of the package {parent}"
+					);
+				} else {
+					cprintln!(
+						"<r>This package cannot be installed as it is part of another package"
+					);
+				}
+			}
 		}
 		Ok::<(), anyhow::Error>(())
 	})??;
+
 	cprintln!("<s,g>All packages installed");
+
+	Ok(())
+}
+
+fn launch_packages(packages: Vec<Package>, data: &mut Data) -> anyhow::Result<()> {
+	tokio_exec(async {
+		for package in packages {
+			if package.can_launch() {
+				package.launch(data).await?;
+			} else {
+				cprintln!("<r>This package cannot be launched as it is not a specific program");
+			}
+		}
+		Ok::<(), anyhow::Error>(())
+	})??;
+
+	cprintln!("<s,g>All packages launched");
+
 	Ok(())
 }
 
@@ -85,4 +119,9 @@ enum Subcommand {
 	},
 	/// Installs all available packages
 	InstallAll,
+	/// Launches a package
+	Launch {
+		/// The names of the packages to launch
+		packages: Vec<Package>,
+	},
 }
