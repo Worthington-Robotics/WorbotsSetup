@@ -64,13 +64,39 @@ pub fn launch_vscode(_data: &mut Data<'_>) -> anyhow::Result<()> {
 }
 
 pub fn launch_data_log_tool(_data: &mut Data<'_>) -> anyhow::Result<()> {
-	let exec = PathBuf::from("C:/Users/Public/wpilib/2023/tools/DataLogTool.vbs");
-	Command::new("cscript").arg(exec).spawn()?;
-	Ok(())
+	launch_vbs_tool("DataLogTool.vbs")
 }
 
 pub fn launch_team_number_setter(_data: &mut Data<'_>) -> anyhow::Result<()> {
-	let exec = PathBuf::from("C:/Users/Public/wpilib/2023/tools/roboRIOTeamNumberSetter.vbs");
+	launch_vbs_tool("roboRIOTeamNumberSetter.vbs")
+}
+
+pub fn launch_glass(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("Glass.vbs")
+}
+
+pub fn launch_outline_viewer(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("OutlineViewer.vbs")
+}
+
+pub fn launch_pathweaver(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("PathWeaver.vbs")
+}
+
+pub fn launch_shuffleboard(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("Shuffleboard.vbs")
+}
+
+pub fn launch_sysid(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("SysId.vbs")
+}
+
+pub fn launch_robotbuilder(_data: &mut Data<'_>) -> anyhow::Result<()> {
+	launch_vbs_tool("RobotBuilder.vbs")
+}
+
+fn launch_vbs_tool(tool: &str) -> anyhow::Result<()> {
+	let exec = PathBuf::from(format!("C:/Users/Public/wpilib/2023/tools/{tool}"));
 	Command::new("cscript").arg(exec).spawn()?;
 	Ok(())
 }

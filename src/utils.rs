@@ -1,5 +1,4 @@
 use std::{
-	ffi::OsStr,
 	future::Future,
 	io::{stdin, stdout, Read, Write},
 	os::windows::process::CommandExt,
@@ -122,13 +121,17 @@ pub fn print_progress(message: impl AsRef<str>) {
 
 /// Creates a command with elevated permissions (which some installers require).
 /// See https://stackoverflow.com/a/60958546
-pub fn run_elevated(cmd: impl AsRef<OsStr>) -> Command {
+pub fn run_elevated(cmd: PathBuf) -> anyhow::Result<Command> {
 	let mut out = Command::new("cmd");
-	out.args(&["/C", "start"]);
-	out.arg(cmd);
+	out.args(&["/C"]);
+	// FML
+	let clean_path = std::fs::canonicalize(cmd)?
+		.to_string_lossy()
+		.replace("\\\\?\\", "");
+	out.arg(clean_path);
 	out.creation_flags(0x00000008);
 
-	out
+	Ok(out)
 }
 
 /// Prompt the user to press any key to continue

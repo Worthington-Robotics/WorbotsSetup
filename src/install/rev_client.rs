@@ -32,7 +32,8 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 
 	// Run the installer
 	data.out.progress("Starting installer");
-	run_elevated(installer_path).spawn()?.wait()?;
+	let mut cmd = run_elevated(installer_path)?;
+	cmd.spawn()?;
 	data.out
 		.instruction("The installer has started. Follow the steps it gives you");
 	data.out.continue_prompt();

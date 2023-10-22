@@ -1,0 +1,1 @@
+All assets are the property of their respective owners

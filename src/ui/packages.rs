@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use native_windows_derive::NwgPartial;
 use native_windows_gui as nwg;
 
+use crate::assets::EMPTY_BMP;
 use crate::utils::tokio_exec;
 use crate::{data::Data, utils::tokio_exec_deferred, output::CommonOutput};
 use crate::package::{ALL_PACKAGES, Package};
@@ -13,12 +14,14 @@ pub struct PackagesUI {
 	#[nwg_layout]
 	layout: nwg::GridLayout,
 
-	#[nwg_control(item_count: 10, list_style: nwg::ListViewStyle::Simple, focus: true,
-		ex_flags: nwg::ListViewExFlags::FULL_ROW_SELECT, 
+	#[nwg_control(item_count: 10, list_style: nwg::ListViewStyle::Detailed, focus: true,
+		ex_flags: nwg::ListViewExFlags::FULL_ROW_SELECT | nwg::ListViewExFlags::AUTO_COLUMN_SIZE, 
 	)]
 	#[nwg_events(OnListViewItemChanged: [PackagesUI::select_pkg])]
 	#[nwg_layout_item(layout: layout, col: 0, col_span: 1, row: 0, row_span: 10)]
 	data_view: nwg::ListView,
+	#[nwg_resource(initial: ALL_PACKAGES.len().try_into().unwrap())]
+	view_icons: nwg::ImageList,
 	selected_pkg: RefCell<Option<Package>>,
 
 	#[nwg_partial(parent: details_pane_frame)]
@@ -35,30 +38,50 @@ impl PackagesUI {
 	pub fn init(&self) {
 		self.details_pane_frame.set_visible(false);
 
+		self.data_view.set_image_list(Some(&self.view_icons), nwg::ListViewImageListType::Small);
+
 		self.data_view.insert_column(nwg::InsertListViewColumn {
 			index: Some(0),
 			fmt: None,
-			width: Some(150),
+			width: Some(500),
 			text: Some("Package name:".into()),
 		});
 		self.data_view.set_headers_enabled(true);
 
-		for package in ALL_PACKAGES {
+		for (i, package) in ALL_PACKAGES.iter().enumerate() {
 			// Pad with spaces so that the selection box is larger
 			let mut text = package.display_name().to_string();
-			let pad_size = 45;
+			let pad_size = 55;
 			if text.len() < pad_size {
 				let pad_size = pad_size - text.len();
 				text.push_str(&" ".repeat(pad_size));
 			}
-			
+
+			if let Some(ico) = package.get_icon() {
+				self.view_icons.add_bitmap(&nwg::Bitmap::from_bin(ico).expect("Failed to load icon"));
+			} else {
+				// We have to push some 32x icon to expand the buffer. It doesn't matter since we wont display it
+				self.view_icons.add_bitmap(&nwg::Bitmap::from_bin(EMPTY_BMP).expect("Failed to load icon"));
+			};
+
 			self.data_view.insert_item(nwg::InsertListViewItem {
-				index: None,
+				index: Some(i.try_into().unwrap()),
 				column_index: 0,
 				text: Some(text),
-				image: None,
+				image: Some(i.try_into().unwrap()),
 			});
 		}
+
+		// This is for stupid layout reasons
+		self.data_view.select_item(
+			ALL_PACKAGES
+				.iter()
+				.position(|x| x == &Package::PhoenixTuner)
+				.expect("Phoenix tuner not in all packages"),
+			true
+		);
+
+		self.update_pane();
 	}
 
 	fn select_pkg(&self) {
@@ -85,15 +108,17 @@ impl PackagesUI {
 		let selected_pkg = self.selected_pkg.borrow();
 		if let Some(pkg) = *selected_pkg {
 			self.details_pane.set_package(Some(pkg));
-			let item = nwg::GridLayoutItem::new(&self.details_pane_frame, 1, 0, 1, 4);
+			let item = nwg::GridLayoutItem::new(&self.details_pane_frame, 1, 0, 1, 6);
 			self.layout.add_child_item(item);
 			self.details_pane_frame.set_visible(true);
 		} else {
 			self.details_pane.set_package(None);
-			let item = nwg::GridLayoutItem::new(&self.details_pane_empty_frame, 1, 0, 1, 4);
+			let item = nwg::GridLayoutItem::new(&self.details_pane_empty_frame, 1, 0, 1, 6);
 			self.layout.add_child_item(item);
 			self.details_pane_empty_frame.set_visible(true);
 		}
+
+		self.layout.fit();
 	}
 }
 
@@ -125,7 +150,7 @@ struct PackageDetailsPane {
 	#[nwg_layout_item(layout: layout, col: 0, row: 5, row_span: 3)]
 	parent_label: nwg::Label,
 
-	#[nwg_control(text: "Launch", size: (100, 50))]
+	#[nwg_control(text: "Open", size: (100, 50))]
 	#[nwg_layout_item(layout: layout, col: 0, row: 9, row_span: 3)]
 	#[nwg_events(OnButtonClick: [PackageDetailsPane::launch_package])]
 	launch_button: nwg::Button,
@@ -150,13 +175,14 @@ impl PackageDetailsPane {
 			}
 			self.launch_button.set_visible(package.can_launch());
 		}
+		self.layout.fit();
 	}
 
 	fn install_package(&self) {
 		if let Some(pkg) = *self.selected_pkg.borrow() {
 			self.install_button.set_enabled(false);
 			self.install_button.set_text("Installing...");
-			println!("Installing package {pkg}");
+			println!("App: Installing package {pkg}");
 
 			tokio_exec_deferred(async move {
 				let mut out = CommonOutput;
@@ -172,16 +198,16 @@ impl PackageDetailsPane {
 	fn launch_package(&self) {
 		if let Some(pkg) = *self.selected_pkg.borrow() {
 			self.launch_button.set_enabled(false);
-			self.launch_button.set_text("Launching...");
-			println!("Launching package {pkg}");
+			self.launch_button.set_text("Opening...");
+			println!("App: Opening package {pkg}");
 
 			tokio_exec(async {
 				let mut out = CommonOutput;
 				let mut data = Data::new(&mut out).expect("Failed to create application data");
-				pkg.launch(&mut data).await.expect("Failed to install package");
+				pkg.launch(&mut data).await.expect("Failed to open package");
 			}).expect("Failed to execute task");
 
-			self.launch_button.set_text("Launch");
+			self.launch_button.set_text("Open");
 			self.launch_button.set_enabled(true);
 		}
 	}
