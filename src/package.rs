@@ -31,10 +31,11 @@ pub static ALL_PACKAGES: &[Package] = &[
 	Package::RadioUtility,
 	Package::REVClient,
 	Package::RIOImagingTool,
-	Package::TaskManager,
 	Package::TeamNumberSetter,
 	Package::Shuffleboard,
+	Package::TaskManager,
 	Package::WorbotsGithub,
+	Package::WorbotsWebsite,
 	Package::WPILib,
 	Package::DataLogTool,
 	Package::WPILibDocs,
@@ -332,7 +333,7 @@ define_packages! {
 		DataLogTool,
 		"data_log_tool",
 		"WPILib Data Log Tool",
-		"Viewer for robot log files",
+		"Viewer and downloader for robot log files",
 		Some(WPILIB_ICON),
 		Some(Self::WPILib),
 		false,
@@ -543,6 +544,18 @@ define_packages! {
 		no_install,
 		true,
 		install::misc::launch_task_manager,
+	);
+	(
+		WorbotsWebsite,
+		"worbots_website",
+		"WorBots Website",
+		"Official website for the WorBots team",
+		None,
+		None,
+		false,
+		no_install,
+		true,
+		install::shortcuts::open_worbots_website,
 	);
 }
 

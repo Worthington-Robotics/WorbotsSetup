@@ -39,6 +39,10 @@ pub mod shortcuts {
 		open_shortcut("https://firstfrc.blob.core.windows.net/frc2023/Manual/2023FRCGameManual.pdf")
 	}
 
+	pub fn open_worbots_website(_data: &mut Data) -> anyhow::Result<()> {
+		open_shortcut("https://worbots4145.org/")
+	}
+
 	fn open_shortcut(url: &str) -> anyhow::Result<()> {
 		Command::new("cmd.exe")
 			.arg("/C")
