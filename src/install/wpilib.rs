@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use anyhow::{anyhow, Context};
@@ -28,14 +28,20 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 
 	// Download the installer
 	data.out.progress("Downloading installer");
-	let installer_path = dir.join("installer.iso");
-	download_file(&data.client, &asset.browser_download_url, &installer_path).await?;
+	let image_path = dir.join("installer.iso");
+	
+	// Unmount the previous iso if needed
+	if image_path.exists() {
+		unmount_iso(&image_path).context("Failed to unmount")?;
+	}
+
+	download_file(&data.client, &asset.browser_download_url, &image_path).await?;
 
 	// Extract the installer
 	data.out.progress("Extracting installer");
 	let powershell_cmd = format!(
 		"$mountResult = Mount-DiskImage -ImagePath '{}' -PassThru; ($mountResult | Get-Volume).DriveLetter",
-		installer_path
+		image_path
 			.to_str()
 			.ok_or(anyhow!("Cannot convert path to string"))?
 	);
@@ -54,6 +60,19 @@ pub async fn install(data: &mut Data<'_>) -> anyhow::Result<()> {
 	dbg!(&installer_path);
 	Command::new(installer_path).spawn()?.wait()?;
 
+	// Dismount the image
+	data.out.progress("Unmounting image");
+	unmount_iso(&image_path).context("Failed to unmount")?;
+
+	Ok(())
+}
+
+fn unmount_iso(path: &Path) -> anyhow::Result<()> {
+	Command::new("Dismount-DiskImage")
+		.arg("-ImagePath")
+		.arg(path)
+		.spawn()?
+		.wait()?;
 	Ok(())
 }
 
